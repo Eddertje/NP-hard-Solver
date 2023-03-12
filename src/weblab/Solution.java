@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 class Solution {
     public static List<String> getBinaryStrings(int n) {
-        Set<List<Character>> solutions = new HashSet<>();
 
         Solver<Character> mySolver = new Solver<>();
         Character[][] domain = new Character[n][];
@@ -19,20 +18,10 @@ class Solution {
 
         List<Function<List<Character>, Boolean>> constraints = new ArrayList<>();
 
-        List<Character> solution = mySolver.solve(domain, constraints);
-        while (solution != null) {
-            solutions.add(solution);
-
-            // Add the existing solution as a constraint
-            List<Character> copiedSolution = new ArrayList<>(solution);
-            Function<List<Character>, Boolean> newConstraint = (a) -> a.equals(new ArrayList<>(copiedSolution));
-            constraints.add(newConstraint);
-
-            solution = mySolver.solve(domain, constraints);
-        }
+        List<List<Character>> all_solutions = mySolver.getAllSolutions(domain, constraints);
 
         // Collect the result and convert it to the correct datastructure.
-        List<String> finalSolution = solutions.stream().map(characters ->
+        List<String> finalSolution = all_solutions.stream().map(characters ->
                 characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
         ).sorted().collect(Collectors.toList());
 
@@ -46,29 +35,30 @@ class Solution {
 }
 
 class Solver<A> {
-    public boolean generate_next(A[][] domain, int[] previous) {
-        for (int i = domain.length-1; i >= 0; --i) {
-            if (previous[i] >= domain[i].length-1) {
-                previous[i] = 0;
-            } else {
-                previous[i]++;
-                return true;
-            }
+    public List<List<A>> getAllSolutions(A[][] domain, List<Function<List<A>, Boolean>> constraints) {
+        Set<List<A>> known_solutions = new HashSet<>();
+        List<A> solution = getOneSolution(domain, constraints);
+        Function<List<A>, Boolean> newConstraint = known_solutions::contains;
+        constraints.add(newConstraint);
+        while (solution != null) {
+            known_solutions.add(solution);
+            solution = getOneSolution(domain, constraints);
         }
-        return false;
+
+        return new ArrayList<>(known_solutions);
     }
 
-    public List<A> solve(A[][] domain, List<Function<List<A>, Boolean>> constraints) {
+    public List<A> getOneSolution(A[][] domain, List<Function<List<A>, Boolean>> constraints) {
         int[] search = new int[domain.length];
         List<A> potential_solution;
 
         do {
-            potential_solution = create_potential_solution(domain, search);
+            potential_solution = createPotentialSolutions(domain, search);
 
             if (isValid(potential_solution, constraints)) {
                 return potential_solution;
             }
-        } while (generate_next(domain, search));
+        } while (generateNext(domain, search));
 
         return null;
     }
@@ -85,7 +75,19 @@ class Solver<A> {
         return true;
     }
 
-    private List<A> create_potential_solution(A[][] domain, int[] search) {
+    private boolean generateNext(A[][] domain, int[] previous) {
+        for (int i = domain.length-1; i >= 0; --i) {
+            if (previous[i] >= domain[i].length-1) {
+                previous[i] = 0;
+            } else {
+                previous[i]++;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<A> createPotentialSolutions(A[][] domain, int[] search) {
         List<A> potential_solution = new ArrayList<>();
         for (int index = 0; index < search.length; index++) {
             potential_solution.add(domain[index][search[index]]);
