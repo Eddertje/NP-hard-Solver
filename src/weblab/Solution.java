@@ -1,27 +1,47 @@
+package weblab;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
-public class Main {
-
-    public static void main(String[] args) {
+class Solution {
+    public static List<String> getBinaryStrings(int n) {
         Set<List<Character>> solutions = new HashSet<>();
 
         Solver<Character> mySolver = new Solver<>();
-        Character[][] domain = new Character[][] {new Character[] {'0', '1'}, new Character[] {'0', '1'}, new Character[] {'0', '1'}};
-        Function<List<Character>, Boolean>[] constraints = new Function[] {(a) -> solutions.contains(a)};
+        Character[][] domain = new Character[n][];
+        for (int i = 0; i < n; i++) {
+            domain[i] = new Character[] {'0', '1'};
+        }
+
+        List<Function<List<Character>, Boolean>> constraints = new ArrayList<>();
 
         List<Character> solution = mySolver.solve(domain, constraints);
         while (solution != null) {
             solutions.add(solution);
-            System.out.println("Found a solution: " + solution);
+
+            // Add the existing solution as a constraint
+            List<Character> copiedSolution = new ArrayList<>(solution);
+            Function<List<Character>, Boolean> newConstraint = (a) -> a.equals(new ArrayList<>(copiedSolution));
+            constraints.add(newConstraint);
 
             solution = mySolver.solve(domain, constraints);
         }
 
-        System.out.println("All solutions: " + solutions);
+        // Collect the result and convert it to the correct datastructure.
+        List<String> finalSolution = solutions.stream().map(characters ->
+                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
+        ).sorted().collect(Collectors.toList());
+
+        System.out.println("All solutions: " + finalSolution);
+        return finalSolution;
+    }
+
+    public static void main(String[] args) {
+        getBinaryStrings(3);
     }
 }
 
@@ -38,7 +58,7 @@ class Solver<A> {
         return false;
     }
 
-    public List<A> solve(A[][] domain, Function<List<A>, Boolean>[] constraints) {
+    public List<A> solve(A[][] domain, List<Function<List<A>, Boolean>> constraints) {
         int[] search = new int[domain.length];
         List<A> potential_solution;
 
@@ -53,11 +73,11 @@ class Solver<A> {
         return null;
     }
 
-    private boolean isValid(List<A> solution, Function<List<A>, Boolean>[] constraints) {
+    private boolean isValid(List<A> solution, List<Function<List<A>, Boolean>> constraints) {
         if (solution == null) {
             return false;
         }
-        for (var constraint : constraints) {
+        for (Function<List<A>, Boolean> constraint : constraints) {
             if (constraint.apply(solution)) {
                 return false;
             }
