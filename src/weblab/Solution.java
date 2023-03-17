@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 class Solution {
     public static List<Integer> exampleProblem(int n) {
@@ -49,10 +50,152 @@ class Solution {
         return finalSolution;
     }
 
+    public static List<int[]> permutationsNoRepetitions(int n, int k) {
+        Solver<Integer> mySolver = new Solver<>();
+
+        Integer[][] domain = new Integer[k][n];
+
+        for (int i = 0; i < k; i++) {
+            Integer[] choice = new Integer[n];
+            for (int j = 0; j<n; j++) {
+                choice[j] = j+1;
+            }
+            domain[i] = choice;
+        }
+
+        System.out.println("Domain: " + Arrays.deepToString(domain));
+
+        List<Constraint<Integer>> constraints = new ArrayList<>();
+
+        Constraint<Integer> constraint = new Constraint<>((xs) -> {
+            HashSet<Integer> in = new HashSet<>();
+            for(int i : xs) {
+                if(in.contains(i)) {
+                    return true;
+                }
+                in.add(i);
+            }
+            return false;
+        }, IntStream.rangeClosed(0, k-1).toArray());
+        constraints.add(constraint);
+
+        List<List<Integer>> all_solutions = mySolver.backTracking_all(domain, constraints);
+        List<int[]> finalSolution = all_solutions.stream().map(xs -> xs.stream().mapToInt(x->x).toArray()).collect(Collectors.toList());
+
+        for (int[] solution : finalSolution) {
+            System.out.println("Found a solution : " + Arrays.toString(solution));
+        }
+        return finalSolution;
+    }
+
+    public static List<String> permutationsWithRepetitions(int n, int k) {
+        Solver<Integer> mySolver = new Solver<>();
+
+        Integer[][] domain = new Integer[k][n];
+
+        for (int i = 0; i < k; i++) {
+            Integer[] choice = new Integer[n];
+            for (int j = 0; j<n; j++) {
+                choice[j] = j+1;
+            }
+            domain[i] = choice;
+        }
+
+        // List<Lambda<Boolean, List<Integer>>> constraints = new ArrayList<>();
+        List<Constraint<Integer>> constraints = new ArrayList<>();
+        Constraint<Integer> constraint = new Constraint<>(xs -> {
+            HashSet<Integer> in = new HashSet<>();
+            for(int i : xs) {
+                if(in.contains(i)) {
+                    return true;
+                }
+                in.add(i);
+            }
+            return false;
+        }, IntStream.rangeClosed(0, n).toArray());
+        constraints.add(constraint);
+
+        List<List<Integer>> all_solutions = mySolver.multiple_backtrack(domain, constraints);
+
+        // Collect the result and convert it to the correct datastructure.
+        List<String> finalSolution = all_solutions.stream().map(characters ->
+                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
+        ).sorted().collect(Collectors.toList());
+
+        System.out.println("All solutions: " + finalSolution);
+        return finalSolution;
+    }
+
+    public static List<String> subSets(int n) {
+
+        //Binary Strings
+        Solver<Integer> mySolver = new Solver<>();
+        Integer[][] domain = new Integer[n][];
+        for (int i = 0; i < n; i++) {
+            domain[i] = new Integer[] {-1, i+1};
+        }
+        List<Constraint<Integer>> constraints = new ArrayList<>();
+
+        List<List<Integer>> all_solutions = mySolver.backTracking_all(domain, constraints);
+        System.out.println("hi");
+        // Collect the result and convert it to the correct datastructure.
+        List<String> finalSolution = all_solutions.stream().map(characters ->
+                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
+        ).sorted().collect(Collectors.toList());
+        System.out.println("All solutions: " + finalSolution);
+        return finalSolution;
+    }
+
+    public static List<String> setPermutations(int n) {
+        Solver<Integer> mySolver = new Solver<>();
+
+        Integer[][] domain = new Integer[n][n];
+
+        for (int i = 0; i < n; i++) {
+            Integer[] choice = new Integer[n];
+            for (int j = 0; j<n; j++) {
+                choice[j] = j+1;
+            }
+            domain[i] = choice;
+        }
+
+        List<Constraint<Integer>> constraints = new ArrayList<>();
+
+        Constraint<Integer> constraint = new Constraint<>(xs -> {
+            HashSet<Integer> in = new HashSet<>();
+            for(int i : xs) {
+                if(in.contains(i)) {
+                    return true;
+                }
+                in.add(i);
+            }
+            return false;
+        }, IntStream.rangeClosed(0, n).toArray());
+
+        List<List<Integer>> all_solutions = mySolver.backTracking_all(domain, constraints);
+
+        // Collect the result and convert it to the correct datastructure.
+        List<String> finalSolution = all_solutions.stream().map(characters ->
+                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
+        ).sorted().collect(Collectors.toList());
+
+        System.out.println("All solutions: " + finalSolution);
+        return finalSolution;
+    }
+
     public static void main(String[] args) {
         // exampleProblem(3);
-        getBinaryStrings(20);
-        //permutationsNoRepetitions(3, 2);
+
+        long startTime = System.currentTimeMillis();
+        // getBinaryStrings(20);
+        permutationsNoRepetitions(3, 2);
+        long endTime = System.currentTimeMillis();
+        System.out.println("That took " + (endTime - startTime) + " milliseconds");
+
+        // 12: 2.1 sec
+        // 13: 8.6 sec
+
+        // permutationsNoRepetitions(3, 2);
         //permutationsWithRepetitions(3, 2);
         //subSets(3);
         //setPermutations(4);
