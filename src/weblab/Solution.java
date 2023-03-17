@@ -35,7 +35,7 @@ class Solution {
         return finalSolution;
     }
 
-    public static List<String> permutationsNoRepetitions(int n, int k) {
+    public static List<int[]> permutationsNoRepetitions(int n, int k) {
         Solver<Integer> mySolver = new Solver<>();
 
         Integer[][] domain = new Integer[k][n];
@@ -74,13 +74,30 @@ class Solution {
         constraints.add(newConstraint);
 
         List<List<Integer>> all_solutions = mySolver.getAllSolutions(domain, constraints);
-
+        /*
         // Collect the result and convert it to the correct datastructure.
         List<String> finalSolution = all_solutions.stream().map(characters ->
                 characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
         ).sorted().collect(Collectors.toList());
 
-        System.out.println("All solutions: " + finalSolution);
+         */
+
+        List<int[]> finalSolution = new ArrayList<>();
+        for (List<Integer> solution : all_solutions) {
+            int[] convert = new int[solution.size()];
+            for (int i = 0; i < solution.size(); i++) {
+                convert[i] = solution.get(i);
+            }
+            finalSolution.add(convert);
+        }
+
+        System.out.println("All solutions: ");
+        for (int[] i : finalSolution) {
+            for (int j : i) {
+                System.out.print(j);
+            }
+            System.out.println("");
+        }
         return finalSolution;
     }
 
@@ -214,12 +231,83 @@ class Solution {
         System.out.println("All solutions: " + finalSolution);
         return finalSolution;
     }
+
+    public static int nQueens(int n) {
+        Solver<Integer> mySolver = new Solver<>();
+
+        Integer[][] domain = new Integer[n*n][2];
+
+        for (int i = 0; i < n*n; i++) {
+            Integer[] choice = new Integer[] {0,1};
+            domain[i] = choice;
+        }
+
+        List<Lambda<Boolean, List<Integer>>> constraints = new ArrayList<>();
+
+        Set<List<Integer>> known_solutions = new HashSet<>();
+        Lambda<Boolean, List<Integer>> newConstraint = x -> {
+            if (!known_solutions.contains(x)) {
+                known_solutions.add(x);
+                return false;
+            }
+            return true;
+        };
+        constraints.add(newConstraint);
+
+        Lambda<Boolean, List<Integer>> directionsAndNumber = x -> {
+            boolean[] vertical = new boolean[n];
+            HashSet<Integer> set = new HashSet<>();
+            int nr = 0;
+            for (int i = 0; i < n; i++) {
+                boolean see = false;
+                for (int j = 0; j < n; j++) {
+                    if(x.get(i*n+j) == 1) {
+                        //See if something is in the row
+                        if(see == true) {
+                            return true;
+                        }
+                        see = true;
+                        //See if something is in the column
+                        if(vertical[j]) {
+                            return true;
+                        }
+                        vertical[j] = true;
+                        //See if something was on same diagonal
+                        int plus = j+i+n;
+                        int minus = j-i-n;
+                        if (set.contains(plus) || set.contains(minus)) {
+                            return true;
+                        }
+                        set.add((j+i) + n);
+                        set.add((j-i) - n);
+                        nr++;
+                    }
+                }
+            }
+            return nr != n;
+        };
+        constraints.add(directionsAndNumber);
+
+        List<List<Integer>> all_solutions = mySolver.getAllSolutions(domain, constraints);
+
+        // Collect the result and convert it to the correct datastructure.
+        List<String> finalSolution = all_solutions.stream().map(characters ->
+                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
+        ).sorted().collect(Collectors.toList());
+
+        System.out.println("All solutions: " + finalSolution);
+        return finalSolution.size();
+    }
     public static void main(String[] args) {
         //getBinaryStrings(3);
         //permutationsNoRepetitions(3, 2);
         //permutationsWithRepetitions(3, 2);
         //subSets(3);
-        //setPermutations(4);
+        //setPermutations(3);
+        System.out.println(nQueens(1));
+        System.out.println(nQueens(2));
+        System.out.println(nQueens(3));
+        System.out.println(nQueens(4));
     }
 }
 
@@ -250,7 +338,7 @@ class Solver<A> {
         return null;
     }
 
-    private boolean isValid(List<A> solution, List<Lambda<Boolean, List<A>>> constraints) {
+    public boolean isValid(List<A> solution, List<Lambda<Boolean, List<A>>> constraints) {
         if (solution == null) {
             return false;
         }
