@@ -38,7 +38,7 @@ class Solution {
 
         List<Constraint<Character>> constraints = new ArrayList<>();
 
-        List<List<Character>> all_solutions = mySolver.multiple_backtrack(domain, constraints);
+        List<List<Character>> all_solutions = mySolver.backTracking_all(domain, constraints);
 
         // Collect the result and convert it to the correct datastructure.
         List<String> finalSolution = all_solutions.stream().map(characters ->
@@ -138,6 +138,26 @@ class Solver<A> {
         }
 
         return null;
+    }
+
+    public List<List<A>> backTracking_all(A[][] domain, List<Constraint<A>> constraints) {
+        List<List<Integer>> solutions_at_depth = new ArrayList<>();
+        solutions_at_depth.add(new ArrayList<>());
+        for (int depth = 0; depth < domain.length; depth++) {
+            List<List<Integer>> solutions_at_depth_new = new ArrayList<>();
+            for (List<Integer> solution : solutions_at_depth) {
+                for (int i = 0; i < domain[depth].length; i++) {
+                    List<Integer> new_solution = new ArrayList<>(solution);
+                    new_solution.add(i);
+
+                    if (isConsistent(domain, new_solution, constraints)) {
+                        solutions_at_depth_new.add(new_solution);
+                    }
+                }
+            }
+            solutions_at_depth = solutions_at_depth_new;
+        }
+        return solutions_at_depth.stream().map(a -> getSolution(domain, a)).collect(Collectors.toList());
     }
 }
 
