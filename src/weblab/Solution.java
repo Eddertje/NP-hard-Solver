@@ -24,22 +24,12 @@ class Solution {
         }
         List<Constraint<Integer>> constraints = new ArrayList<>();
 
-        Set<List<Integer>> known_solutions = new HashSet<>();
-        Constraint<Integer> newConstraint = new Constraint<>(x -> {
-            if (!known_solutions.contains(x)) {
-                known_solutions.add(x);
-                return true;
-            }
-            return false;
-        }, IntStream.rangeClosed(0, n-1).toArray());
-        constraints.add(newConstraint);
-
         List<List<Integer>> solutions = new ArrayList<>();
         List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
         while (solution != null) {
             List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
             List<Integer> finalSolution1 = solution;
-            Constraint<Integer> largerThanConstraint = new Constraint<>(xs -> compareNumbers(domain.length, xs, finalSolution1), new int[] {0});
+            Constraint<Integer> largerThanConstraint = new Constraint<>(xs -> compareNumbers2(xs, finalSolution1), new int[] {0});
             new_constraints.add(largerThanConstraint);
 
             solutions.add(solution);
@@ -47,29 +37,31 @@ class Solution {
         }
 
         // Collect the result and convert it to the correct datastructure.
-        List<String> finalSolution = solutions.stream().map(vars -> getSolution(domain, vars)).map(Object::toString).collect(Collectors.toList());
+        List<String> finalSolution = solutions.stream().map(vars -> getSolution(domain, vars)).map(characters ->
+            characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
+        ).collect(Collectors.toList());
 
         System.out.println("All solutions: " + finalSolution);
         return finalSolution;
     }
 
-    private static boolean compareNumbers(int domainSize, List<Integer> inputList, List<Integer> oldList) {
-        int input = 0;
-        int old = 0;
+    private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList) {
         for (int i = 0; i < inputList.size(); i++) {
-            input += inputList.get(i) * Math.pow(2, domainSize - i - 1);
-            old += oldList.get(i) * Math.pow(2, domainSize - i - 1);
+            if (inputList.get(i) > oldList.get(i)) {
+                return true;
+            }
+            if (inputList.get(i) < oldList.get(i)) {
+                return false;
+            }
         }
-        // System.out.println("Turned: " + inputList + " into: " + input);
-        // System.out.println("Turned: " + oldList + " into: " + old);
-        return input >= old;
+        return inputList.size() != oldList.size();
     }
 
     public static void main(String[] args) {
         // exampleProblem(3);
 
         long startTime = System.currentTimeMillis();
-        getBinaryStrings(3);
+        getBinaryStrings(20);
         // permutationsNoRepetitions(3, 2);
         long endTime = System.currentTimeMillis();
         System.out.println("That took " + (endTime - startTime) + " milliseconds");
@@ -127,7 +119,7 @@ class Solver<A> {
                     // System.out.println("This solution is not valid!: " + partial_solution);
                     return false;
                 }
-                // System.out.println("This solution is valid!");
+                // System.out.println("This solution is valid!: " + partial_solution);
             }
         }
         return true;
