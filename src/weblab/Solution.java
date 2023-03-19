@@ -3,6 +3,7 @@ package weblab;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 class Solution {
@@ -35,40 +36,33 @@ class Solution {
 
         List<List<Integer>> solutions = new ArrayList<>();
         List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
-        int oldIndex = domain.length + 10;
         while (solution != null) {
-            if (indexOf(solution) < oldIndex) {
-                oldIndex = indexOf(solution);
-                int finalOldIndex = oldIndex;
-                // System.out.println("Adding a new constraint! " + finalOldIndex);
-                // Once an index has been set to one, it can never be unset while it is the leftmost index.
-                Constraint<Integer> additionalConstraint = new Constraint<>(a -> {
-                    // System.out.println("Comparing index of a: " + indexOf(a) + " to finalOldIndex: " + finalOldIndex);
-                    return indexOf(a) <= finalOldIndex;
-                }, new int[] {finalOldIndex});
-                constraints.add(additionalConstraint);
-                System.out.println("Just added another constraint at: " + finalOldIndex);
-            }
+            List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
+            List<Integer> finalSolution1 = solution;
+            Constraint<Integer> largerThanConstraint = new Constraint<>(xs -> compareNumbers(domain.length, xs, finalSolution1), new int[] {0});
+            new_constraints.add(largerThanConstraint);
 
             solutions.add(solution);
-            solution = mySolver.backTracking_helper(domain, constraints);
+            solution = mySolver.backTracking_helper(domain, new_constraints);
         }
 
         // Collect the result and convert it to the correct datastructure.
-        System.out.println("Solutions: " + solutions);
-        List<String> finalSolution = solutions.stream().map(vars -> getSolution(domain, vars)).map(Object::toString).toList();
+        List<String> finalSolution = solutions.stream().map(vars -> getSolution(domain, vars)).map(Object::toString).collect(Collectors.toList());
 
         System.out.println("All solutions: " + finalSolution);
         return finalSolution;
     }
 
-    private static int indexOf(List<Integer> solution) {
-        for (int i = 0; i < solution.size(); i++) {
-            if (solution.get(i) == 1) {
-                return i;
-            }
+    private static boolean compareNumbers(int domainSize, List<Integer> inputList, List<Integer> oldList) {
+        int input = 0;
+        int old = 0;
+        for (int i = 0; i < inputList.size(); i++) {
+            input += inputList.get(i) * Math.pow(2, domainSize - i - 1);
+            old += oldList.get(i) * Math.pow(2, domainSize - i - 1);
         }
-        return solution.size();
+        // System.out.println("Turned: " + inputList + " into: " + input);
+        // System.out.println("Turned: " + oldList + " into: " + old);
+        return input >= old;
     }
 
     public static void main(String[] args) {
@@ -122,18 +116,18 @@ class Solver<A> {
             boolean will_check = true;
             for (int variable : constraint.variables) {
                 if (variable > partial_solution.size()-1) {
-                    System.out.println("Variables: " + Arrays.toString(constraint.variables));
-                    System.out.println("Will not check: " + partial_solution);
+                    // System.out.println("Variables: " + Arrays.toString(constraint.variables));
+                    // System.out.println("Will not check: " + partial_solution);
                     will_check = false;
                 }
             }
 
             if (will_check) {
                 if (!isValid(partial_solution, constraint)) {
-                    System.out.println("This solution is not valid!: " + partial_solution);
+                    // System.out.println("This solution is not valid!: " + partial_solution);
                     return false;
                 }
-                System.out.println("This solution is valid!");
+                // System.out.println("This solution is valid!");
             }
         }
         return true;
