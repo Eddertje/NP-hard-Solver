@@ -7,42 +7,45 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 class Solution {
-    private static List<Character> getSolution(Character[][] domain, List<Integer> variables) {
-        List<Character> solution = new ArrayList<>(variables.size());
+    private static List<Integer> getSolution(Integer[][] domain, List<Integer> variables) {
+        List<Integer> solution = new ArrayList<>(variables.size());
         for (int i = 0; i < variables.size(); i++) {
             solution.add(domain[i][variables.get(i)]);
         }
         return solution;
     }
 
-    public static List<String> getBinaryStrings(int n) {
+    public static List<int[]> getSubsets(int n) {
+
         //Binary Strings
-        Solver<Character> mySolver = new Solver<>();
-        Character[][] domain = new Character[n][];
+        Solver<Integer> mySolver = new Solver<>();
+        Integer[][] domain = new Integer[n][];
         for (int i = 0; i < n; i++) {
-            domain[i] = new Character[] {'0', '1'};
+            domain[i] = new Integer[] {-1, i+1}; // Set to -1 to represent missing value.
         }
-        List<Constraint<Integer>> constraints = new ArrayList<>();
 
         List<List<Integer>> solutions = new ArrayList<>();
-        List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
-        while (solution != null) {
-            List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
+        List<Integer> solution = mySolver.backTracking_helper(domain, new ArrayList<>());
+
+        do {
+            solutions.add(solution);
+            List<Constraint<Integer>> new_constraints = new ArrayList<>();
             List<Integer> finalSolution1 = solution;
             Constraint<Integer> largerThanConstraint = new Constraint<>(xs -> compareNumbers2(xs, finalSolution1), new int[] {0});
             new_constraints.add(largerThanConstraint);
 
-            solutions.add(solution);
             solution = mySolver.backTracking_helper(domain, new_constraints);
-        }
+        } while (solution != null);
+
 
         // Collect the result and convert it to the correct datastructure.
-        List<String> finalSolution = solutions.stream().map(vars -> getSolution(domain, vars)).map(characters ->
-            characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
-        ).collect(Collectors.toList());
-
-        System.out.println("All solutions: " + finalSolution);
-        return finalSolution;
+        return solutions
+                .stream()
+                .map(c -> getSolution(domain, c)
+                        .stream()
+                        .filter(x -> x != -1)
+                        .mapToInt(x -> x).toArray())
+                .collect(Collectors.toList());
     }
 
     private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList) {
@@ -61,7 +64,7 @@ class Solution {
         // exampleProblem(3);
 
         long startTime = System.currentTimeMillis();
-        getBinaryStrings(20);
+        getSubsets(20);
         // permutationsNoRepetitions(3, 2);
         long endTime = System.currentTimeMillis();
         System.out.println("That took " + (endTime - startTime) + " milliseconds");
