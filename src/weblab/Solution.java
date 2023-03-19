@@ -7,24 +7,47 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 class Solution {
-    private static List<Character> getSolution(Character[][] domain, List<Integer> variables) {
-        List<Character> solution = new ArrayList<>(variables.size());
-        for (int i = 0; i < variables.size(); i++) {
-            solution.add(domain[i][variables.get(i)]);
-        }
-        return solution;
-    }
+    public static List<int[]> getCombinationsWithoutRepetition(int n, int k) {
+        Solver<Integer> mySolver = new Solver<>();
 
-    public static List<String> getBinaryStrings(int n) {
-        //Binary Strings
-        Solver<Character> mySolver = new Solver<>();
-        Character[][] domain = new Character[n][];
-        for (int i = 0; i < n; i++) {
-            domain[i] = new Character[] {'0', '1'};
+        Integer[][] domain = new Integer[k][];
+
+        for (int i = 0; i < k; i++) {
+            Integer[] choice = new Integer[n];
+            for (int j = 0; j<n; j++) {
+                choice[j] = j+1;
+                //System.out.print(j + 1 + ", ");
+            }
+            //System.out.println();
+            domain[i] = choice;
         }
+
         List<Constraint<Integer>> constraints = new ArrayList<>();
 
+        Set<Set<Integer>> known_solutions = new HashSet<>();
+        Constraint<Integer> noReps = new Constraint<>(xs -> {
+            Set<Integer> set = new HashSet<>(xs);
+            if (!known_solutions.contains(set)) {
+                return true;
+            }
+            return false;
+        }, new int[] {0});
+        constraints.add(noReps);
+
+        Constraint<Integer> biggerThanPrev = new Constraint<>(xs -> {
+            int prev = xs.get(0) - 1;
+            for (Integer i : xs) {
+                if(i <= prev) {
+                    return false;
+                }
+                prev = i;
+            }
+            return true;
+        }, new int[] {0});
+        constraints.add(biggerThanPrev);
+
         List<List<Integer>> solutions = new ArrayList<>();
+
         List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
         while (solution != null) {
             List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
@@ -33,15 +56,35 @@ class Solution {
             new_constraints.add(largerThanConstraint);
 
             solutions.add(solution);
+            known_solutions.add(new HashSet<>(solution));
             solution = mySolver.backTracking_helper(domain, new_constraints);
         }
-
+        /*
         // Collect the result and convert it to the correct datastructure.
-        List<String> finalSolution = solutions.stream().map(vars -> getSolution(domain, vars)).map(characters ->
-            characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
-        ).collect(Collectors.toList());
+        List<String> finalSolution = all_solutions.stream().map(characters ->
+                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
+        ).sorted().collect(Collectors.toList());
+         */
 
-        System.out.println("All solutions: " + finalSolution);
+        List<int[]> finalSolution = new ArrayList<>();
+        for (List<Integer> sol : solutions) {
+            int[] convert = new int[sol.size()];
+            for (int i = 0; i < sol.size(); i++) {
+                convert[i] = sol.get(i)+1;
+            }
+            finalSolution.add(convert);
+        }
+        /*
+        System.out.println("All solutions: ");
+        for (int[] i : finalSolution) {
+            System.out.print("(");
+            for (int j : i) {
+                System.out.print(j + ", ");
+            }
+            System.out.print("), ");
+        }
+
+         */
         return finalSolution;
     }
 
@@ -61,8 +104,8 @@ class Solution {
         // exampleProblem(3);
 
         long startTime = System.currentTimeMillis();
-        getBinaryStrings(20);
-        // permutationsNoRepetitions(3, 2);
+        // getBinaryStrings(20);
+        getCombinationsWithoutRepetition(52, 3);
         long endTime = System.currentTimeMillis();
         System.out.println("That took " + (endTime - startTime) + " milliseconds");
 
