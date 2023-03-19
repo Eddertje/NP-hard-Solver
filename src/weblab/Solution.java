@@ -7,37 +7,78 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 class Solution {
-    public static List<int[]> getSetPermutations(int n) {
+    public static int nQueens(int n) {
         Solver<Integer> mySolver = new Solver<>();
-        Integer[][] domain = new Integer[n][];
-        for (int i = 0; i < n; i++) {
-            domain[i] = IntStream.rangeClosed(1, n).boxed().toArray(Integer[]::new);
+
+        Integer[][] domain = new Integer[n*n][2];
+
+        for (int i = 0; i < n*n; i++) {
+            Integer[] choice = new Integer[] {0,1};
+            domain[i] = choice;
         }
 
-        List<List<Integer>> solutions = new ArrayList<>();
-
         List<Constraint<Integer>> constraints = new ArrayList<>();
-        Constraint<Integer> unique = new Constraint<>(xs -> xs.size() == xs.stream().distinct().collect(Collectors.toList()).size(), new int[] {1});
-        constraints.add(unique);
 
+        Set<List<Integer>> known_solutions = new HashSet<>();
+        Constraint<Integer> newConstraint = new Constraint<>(xs -> !known_solutions.contains(xs), new int[] {0});
+        constraints.add(newConstraint);
+
+        Constraint<Integer> directionsAndNumber = new Constraint<>(x -> {
+            // System.out.println("inside constraint!");
+            boolean[] vertical = new boolean[n];
+            HashSet<Integer> set = new HashSet<>();
+            int nr = 0;
+            for (int i = 0; i < n; i++) {
+                boolean see = false;
+                for (int j = 0; j < n; j++) {
+                    if(x.get(i*n+j) == 1) {
+                        //See if something is in the row
+                        if(see == true) {
+                            return false;
+                        }
+                        see = true;
+                        //See if something is in the column
+                        if(vertical[j]) {
+                            return false;
+                        }
+                        vertical[j] = true;
+                        //See if something was on same diagonal
+                        int plus = j+i+n;
+                        int minus = j-i-n;
+                        if (set.contains(plus) || set.contains(minus)) {
+                            return false;
+                        }
+                        set.add((j+i) + n);
+                        set.add((j-i) - n);
+                        nr++;
+                    }
+                }
+            }
+            return nr == n;
+        }, new int[] {(n*n)-1});
+        constraints.add(directionsAndNumber);
+
+        // Constraint<Integer> idk = new Constraint<>(xs -> nr != n, new int[] {(int) Math.pow(n, 2)});
+        // constraints.add(idk);
+
+        List<List<Integer>> solutions = new ArrayList<>();
         List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
-        do {
-            List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
-            List<Integer> finalSolution1 = solution;
-            Constraint<Integer> largerThanConstraint = new Constraint<>(xs -> compareNumbers2(xs, finalSolution1), new int[] {0});
-            new_constraints.add(largerThanConstraint);
 
+        while (solution != null) {
+            System.out.println("Adding a new solution: " + solution);
             solutions.add(solution);
-            solution = mySolver.backTracking_helper(domain, new_constraints);
-        } while (solution != null);
+            known_solutions.add(solution);
+
+            solution = mySolver.backTracking_helper(domain, constraints);
+        }
 
         // Collect the result and convert it to the correct datastructure.
-        return solutions
-                .stream()
-                .map(c -> getSolution(domain, c)
-                        .stream()
-                        .mapToInt(x -> x).toArray())
-                .collect(Collectors.toList());
+        List<String> finalSolution = solutions.stream().map(characters ->
+                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
+        ).sorted().collect(Collectors.toList());
+
+        System.out.println("All solutions: " + finalSolution);
+        return finalSolution.size();
     }
 
     private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList) {
@@ -65,11 +106,8 @@ class Solution {
         // exampleProblem(3);
 
         long startTime = System.currentTimeMillis();
-        System.out.println("Solutions: ");
-        List<int[]> tmp = getSetPermutations(10);
-        for (int[] sol : tmp) {
-            System.out.println(Arrays.toString(sol));
-        }
+        int tmp = nQueens(2);
+        System.out.println("Result: " + tmp);
         // permutationsNoRepetitions(3, 2);
         long endTime = System.currentTimeMillis();
         System.out.println("That took " + (endTime - startTime) + " milliseconds");
