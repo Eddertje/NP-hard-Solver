@@ -1,194 +1,82 @@
 package weblab;
 
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 class Solution {
-    public static List<Integer> exampleProblem(int n) {
-
-        //Binary Strings
-        Solver<Integer> mySolver = new Solver<>();
-        Integer[][] domain = new Integer[n][];
-        for (int i = 0; i < n; i++) {
-            domain[i] = new Integer[] {0, 1};
+    private static List<Character> getSolution(Character[][] domain, List<Integer> variables) {
+        List<Character> solution = new ArrayList<>(variables.size());
+        for (int i = 0; i < variables.size(); i++) {
+            solution.add(domain[i][variables.get(i)]);
         }
-
-        List<Constraint<Integer>> constraints = new ArrayList<>();
-        constraints.add(new Constraint<>((a) -> a.get(0) - a.get(2) >= 0, new int[]{0, 2}));
-        constraints.add(new Constraint<>((a) -> a.get(1) != 0, new int[]{1}));
-
-        System.out.println("Constraints: " + constraints);
-
-        List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
-
-        System.out.println("A solution: " + solution);
         return solution;
     }
 
     public static List<String> getBinaryStrings(int n) {
-
+        //Binary Strings
         Solver<Character> mySolver = new Solver<>();
         Character[][] domain = new Character[n][];
         for (int i = 0; i < n; i++) {
             domain[i] = new Character[] {'0', '1'};
         }
-
-        List<Constraint<Character>> constraints = new ArrayList<>();
-
-        List<List<Character>> all_solutions = mySolver.backTracking_all(domain, constraints);
-
-        // Collect the result and convert it to the correct datastructure.
-        List<String> finalSolution = all_solutions.stream().map(characters ->
-                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
-        ).sorted().collect(Collectors.toList());
-
-        System.out.println("All solutions: " + finalSolution);
-        return finalSolution;
-    }
-
-    public static List<int[]> permutationsNoRepetitions(int n, int k) {
-        Solver<Integer> mySolver = new Solver<>();
-
-        Integer[][] domain = new Integer[k][n];
-
-        for (int i = 0; i < k; i++) {
-            Integer[] choice = new Integer[n];
-            for (int j = 0; j<n; j++) {
-                choice[j] = j+1;
-            }
-            domain[i] = choice;
-        }
-
-        System.out.println("Domain: " + Arrays.deepToString(domain));
-
         List<Constraint<Integer>> constraints = new ArrayList<>();
 
-        Constraint<Integer> constraint = new Constraint<>((xs) -> {
-            HashSet<Integer> in = new HashSet<>();
-            for(int i : xs) {
-                if(in.contains(i)) {
-                    return true;
-                }
-                in.add(i);
+        Set<List<Integer>> known_solutions = new HashSet<>();
+        Constraint<Integer> newConstraint = new Constraint<>(x -> {
+            if (!known_solutions.contains(x)) {
+                known_solutions.add(x);
+                return true;
             }
             return false;
-        }, IntStream.rangeClosed(0, k-1).toArray());
-        constraints.add(constraint);
+        }, IntStream.rangeClosed(0, n-1).toArray());
+        constraints.add(newConstraint);
 
-        List<List<Integer>> all_solutions = mySolver.backTracking_all(domain, constraints);
-        List<int[]> finalSolution = all_solutions.stream().map(xs -> xs.stream().mapToInt(x->x).toArray()).collect(Collectors.toList());
-
-        for (int[] solution : finalSolution) {
-            System.out.println("Found a solution : " + Arrays.toString(solution));
-        }
-        return finalSolution;
-    }
-
-    public static List<String> permutationsWithRepetitions(int n, int k) {
-        Solver<Integer> mySolver = new Solver<>();
-
-        Integer[][] domain = new Integer[k][n];
-
-        for (int i = 0; i < k; i++) {
-            Integer[] choice = new Integer[n];
-            for (int j = 0; j<n; j++) {
-                choice[j] = j+1;
+        List<List<Integer>> solutions = new ArrayList<>();
+        List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
+        int oldIndex = domain.length + 10;
+        while (solution != null) {
+            if (indexOf(solution) < oldIndex) {
+                oldIndex = indexOf(solution);
+                int finalOldIndex = oldIndex;
+                // System.out.println("Adding a new constraint! " + finalOldIndex);
+                // Once an index has been set to one, it can never be unset while it is the leftmost index.
+                Constraint<Integer> additionalConstraint = new Constraint<>(a -> {
+                    // System.out.println("Comparing index of a: " + indexOf(a) + " to finalOldIndex: " + finalOldIndex);
+                    return indexOf(a) <= finalOldIndex;
+                }, new int[] {finalOldIndex});
+                constraints.add(additionalConstraint);
+                System.out.println("Just added another constraint at: " + finalOldIndex);
             }
-            domain[i] = choice;
+
+            solutions.add(solution);
+            solution = mySolver.backTracking_helper(domain, constraints);
         }
-
-        // List<Lambda<Boolean, List<Integer>>> constraints = new ArrayList<>();
-        List<Constraint<Integer>> constraints = new ArrayList<>();
-        Constraint<Integer> constraint = new Constraint<>(xs -> {
-            HashSet<Integer> in = new HashSet<>();
-            for(int i : xs) {
-                if(in.contains(i)) {
-                    return true;
-                }
-                in.add(i);
-            }
-            return false;
-        }, IntStream.rangeClosed(0, n).toArray());
-        constraints.add(constraint);
-
-        List<List<Integer>> all_solutions = mySolver.multiple_backtrack(domain, constraints);
 
         // Collect the result and convert it to the correct datastructure.
-        List<String> finalSolution = all_solutions.stream().map(characters ->
-                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
-        ).sorted().collect(Collectors.toList());
+        System.out.println("Solutions: " + solutions);
+        List<String> finalSolution = solutions.stream().map(vars -> getSolution(domain, vars)).map(Object::toString).toList();
 
         System.out.println("All solutions: " + finalSolution);
         return finalSolution;
     }
 
-    public static List<String> subSets(int n) {
-
-        //Binary Strings
-        Solver<Integer> mySolver = new Solver<>();
-        Integer[][] domain = new Integer[n][];
-        for (int i = 0; i < n; i++) {
-            domain[i] = new Integer[] {-1, i+1};
-        }
-        List<Constraint<Integer>> constraints = new ArrayList<>();
-
-        List<List<Integer>> all_solutions = mySolver.backTracking_all(domain, constraints);
-        System.out.println("hi");
-        // Collect the result and convert it to the correct datastructure.
-        List<String> finalSolution = all_solutions.stream().map(characters ->
-                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
-        ).sorted().collect(Collectors.toList());
-        System.out.println("All solutions: " + finalSolution);
-        return finalSolution;
-    }
-
-    public static List<String> setPermutations(int n) {
-        Solver<Integer> mySolver = new Solver<>();
-
-        Integer[][] domain = new Integer[n][n];
-
-        for (int i = 0; i < n; i++) {
-            Integer[] choice = new Integer[n];
-            for (int j = 0; j<n; j++) {
-                choice[j] = j+1;
+    private static int indexOf(List<Integer> solution) {
+        for (int i = 0; i < solution.size(); i++) {
+            if (solution.get(i) == 1) {
+                return i;
             }
-            domain[i] = choice;
         }
-
-        List<Constraint<Integer>> constraints = new ArrayList<>();
-
-        Constraint<Integer> constraint = new Constraint<>(xs -> {
-            HashSet<Integer> in = new HashSet<>();
-            for(int i : xs) {
-                if(in.contains(i)) {
-                    return true;
-                }
-                in.add(i);
-            }
-            return false;
-        }, IntStream.rangeClosed(0, n).toArray());
-
-        List<List<Integer>> all_solutions = mySolver.backTracking_all(domain, constraints);
-
-        // Collect the result and convert it to the correct datastructure.
-        List<String> finalSolution = all_solutions.stream().map(characters ->
-                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
-        ).sorted().collect(Collectors.toList());
-
-        System.out.println("All solutions: " + finalSolution);
-        return finalSolution;
+        return solution.size();
     }
 
     public static void main(String[] args) {
         // exampleProblem(3);
 
         long startTime = System.currentTimeMillis();
-        // getBinaryStrings(20);
-        permutationsNoRepetitions(3, 2);
+        getBinaryStrings(3);
+        // permutationsNoRepetitions(3, 2);
         long endTime = System.currentTimeMillis();
         System.out.println("That took " + (endTime - startTime) + " milliseconds");
 
@@ -203,17 +91,17 @@ class Solution {
 }
 
 class Solver<A> {
-    public List<List<A>> multiple_backtrack(A[][] domain, List<Constraint<A>> constraints) {
-        List<List<A>> all_solutions = new ArrayList<>();
-        Set<List<A>> known_solutions = new HashSet<>();
+    public List<List<Integer>> multiple_backtrack(A[][] domain, List<Constraint<Integer>> constraints) {
+        List<List<Integer>> all_solutions = new ArrayList<>();
+        Set<List<Integer>> known_solutions = new HashSet<>();
         int[] variables = new int[domain.length];
         for (int i = 0; i < domain.length; i++) {
             variables[i] = i;
         }
-        Constraint<A> no_duplicates = new Constraint<>(a -> !known_solutions.contains(a), variables);
+        Constraint<Integer> no_duplicates = new Constraint<>(a -> !known_solutions.contains(a), variables);
         constraints.add(no_duplicates);
 
-        List<A> sol = backTracking_helper(domain, constraints);
+        List<Integer> sol = backTracking_helper(domain, constraints);
         while (sol != null) {
             all_solutions.add(sol);
             known_solutions.add(sol);
@@ -225,46 +113,41 @@ class Solver<A> {
         return all_solutions;
     }
 
-    private List<A> getSolution(A[][] domain, List<Integer> variables) {
-        List<A> solution = new ArrayList<>(variables.size());
-        for (int i = 0; i < variables.size(); i++) {
-            solution.add(domain[i][variables.get(i)]);
-        }
-        return solution;
-    }
-
-    private boolean isValid(List<A> assignment, Constraint<A> constraint) {
+    private boolean isValid(List<Integer> assignment, Constraint<Integer> constraint) {
         return constraint.eval.apply(assignment);
     }
 
-    private boolean isConsistent(A[][] domain, List<Integer> partial_solution, List<Constraint<A>> constraints) {
-        for (Constraint<A> constraint : constraints) {
+    private boolean isConsistent(A[][] domain, List<Integer> partial_solution, List<Constraint<Integer>> constraints) {
+        for (Constraint<Integer> constraint : constraints) {
             boolean will_check = true;
             for (int variable : constraint.variables) {
                 if (variable > partial_solution.size()-1) {
-                    // System.out.println("Will not check!");
+                    System.out.println("Variables: " + Arrays.toString(constraint.variables));
+                    System.out.println("Will not check: " + partial_solution);
                     will_check = false;
                 }
             }
 
             if (will_check) {
-                if (!isValid(getSolution(domain, partial_solution), constraint)) {
+                if (!isValid(partial_solution, constraint)) {
+                    System.out.println("This solution is not valid!: " + partial_solution);
                     return false;
                 }
-                // System.out.println("This solution is valid!");
+                System.out.println("This solution is valid!");
             }
         }
         return true;
     }
 
-    public List<A> backTracking_helper(A[][] domain, List<Constraint<A>> constraints) {
+    public List<Integer> backTracking_helper(A[][] domain, List<Constraint<Integer>> constraints) {
         List<Integer> unassigned = new ArrayList<>();
         return backTracking(0, unassigned, domain, constraints);
     }
 
-    private List<A> backTracking(int depth, List<Integer> solution, A[][] domain, List<Constraint<A>> constraints) {
+    private List<Integer> backTracking(int depth, List<Integer> solution, A[][] domain, List<Constraint<Integer>> constraints) {
         if (depth == domain.length) {
-            return getSolution(domain, solution);
+            // System.out.println("Found a new solution: " + solution);
+            return solution;
         }
 
         for (int i = 0; i < domain[depth].length; i++) {
@@ -272,18 +155,40 @@ class Solver<A> {
             new_solution.add(i);
 
             if (isConsistent(domain, new_solution, constraints)) {
-                List<A> potential_solution = backTracking(depth+1, new_solution, domain, constraints);
+                // System.out.println("Is consistent: " + new_solution);
+                List<Integer> potential_solution = backTracking(depth+1, new_solution, domain, constraints);
                 if (potential_solution != null) {
                     // System.out.println("Returning: " + potential_solution);
                     return potential_solution;
                 }
-            }
+            }/* else {
+                System.out.println("Is not consistent!" + new_solution);
+            }*/
         }
 
         return null;
     }
 
-    public List<List<A>> backTracking_all(A[][] domain, List<Constraint<A>> constraints) {
+    public List<Integer> backTracking2(A[][] domain, List<Constraint<Integer>> constraints) {
+        List<Integer> solution = new ArrayList<>();
+        for (int depth = 0; depth < domain.length; depth++) {
+            System.out.println("Considering variables at depth: " + depth);
+            System.out.println("The solution so far: " + solution);
+            for (int i = 0; i < domain[depth].length; i++) {
+                List<Integer> new_solution = new ArrayList<>(solution);
+                new_solution.add(i);
+
+                if (isConsistent(domain, new_solution, constraints)) {
+                    solution = new_solution;
+                    break;
+                }
+            }
+        }
+        System.out.println("Returning a valid solution: " + solution);
+        return solution;
+    }
+
+    public List<List<Integer>> backTracking_all(A[][] domain, List<Constraint<Integer>> constraints) {
         List<List<Integer>> solutions_at_depth = new ArrayList<>();
         solutions_at_depth.add(new ArrayList<>());
         for (int depth = 0; depth < domain.length; depth++) {
@@ -300,7 +205,7 @@ class Solver<A> {
             }
             solutions_at_depth = solutions_at_depth_new;
         }
-        return solutions_at_depth.stream().map(a -> getSolution(domain, a)).collect(Collectors.toList());
+        return solutions_at_depth;
     }
 }
 
