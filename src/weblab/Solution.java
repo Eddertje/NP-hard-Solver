@@ -3,82 +3,73 @@ package weblab;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 class Solution {
-    public static int nQueens(int n) {
+    public static int getNQueenSolutions(int n) {
         Solver<Integer> mySolver = new Solver<>();
 
-        Integer[][] domain = new Integer[n*n][2];
+        Integer[][] domain = new Integer[n][2];
 
-        for (int i = 0; i < n*n; i++) {
-            Integer[] choice = new Integer[] {0,1};
+        for (int i = 0; i < n; i++) {
+            Integer[] choice = new Integer[n];
+            for (int j = 0; j < choice.length; j++) {
+                choice[j] = j;
+            }
             domain[i] = choice;
         }
 
         List<Constraint<Integer>> constraints = new ArrayList<>();
 
         Set<List<Integer>> known_solutions = new HashSet<>();
-        Constraint<Integer> newConstraint = new Constraint<>(xs -> !known_solutions.contains(xs), new int[] {0});
+        Constraint<Integer> newConstraint = new Constraint<>(xs -> !known_solutions.contains(xs), new int[] {n-1});
         constraints.add(newConstraint);
 
-        Constraint<Integer> directionsAndNumber = new Constraint<>(x -> {
+        Constraint<Integer> directions = new Constraint<>(x -> {
             // System.out.println("inside constraint!");
             boolean[] vertical = new boolean[n];
-            HashSet<Integer> set = new HashSet<>();
-            int nr = 0;
-            for (int i = 0; i < n; i++) {
-                boolean see = false;
-                for (int j = 0; j < n; j++) {
-                    if(x.get(i*n+j) == 1) {
-                        //See if something is in the row
-                        if(see == true) {
-                            return false;
-                        }
-                        see = true;
-                        //See if something is in the column
-                        if(vertical[j]) {
-                            return false;
-                        }
-                        vertical[j] = true;
-                        //See if something was on same diagonal
-                        int plus = j+i+n;
-                        int minus = j-i-n;
-                        if (set.contains(plus) || set.contains(minus)) {
-                            return false;
-                        }
-                        set.add((j+i) + n);
-                        set.add((j-i) - n);
-                        nr++;
-                    }
+            HashSet<Integer> diagonal = new HashSet<>();
+            for (int i = 0; i < x.size(); i++) {
+                if (vertical[x.get(i)]) {
+                    return false;
                 }
+                vertical[x.get(i)] = true;
+                int left = x.get(i) - i - n;
+                int right = x.get(i) + i + n;
+                if (diagonal.contains(left) || diagonal.contains(right)) {
+                    return false;
+                }
+                diagonal.add(left);
+                diagonal.add(right);
             }
-            return nr == n;
-        }, new int[] {(n*n)-1});
-        constraints.add(directionsAndNumber);
+            if (x.size() == 4) {
+                /*
+                for (Integer j : x) {
+                    System.out.println(j);
+                }
 
-        // Constraint<Integer> idk = new Constraint<>(xs -> nr != n, new int[] {(int) Math.pow(n, 2)});
-        // constraints.add(idk);
+                 *///System.out.println("hi");
+            }
+            return true;
+        }, new int[] {1});
+        constraints.add(directions);
 
         List<List<Integer>> solutions = new ArrayList<>();
         List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
 
         while (solution != null) {
-            System.out.println("Adding a new solution: " + solution);
+            //System.out.println("Adding a new solution: " + solution);
             solutions.add(solution);
             known_solutions.add(solution);
+            List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
+            List<Integer> finalSolution1 = solution;
+            Constraint<Integer> largerThanConstraint = new Constraint<>(xs -> compareNumbers2(xs, finalSolution1), new int[] {0});
+            new_constraints.add(largerThanConstraint);
 
-            solution = mySolver.backTracking_helper(domain, constraints);
+            solution = mySolver.backTracking_helper(domain, new_constraints);
         }
 
-        // Collect the result and convert it to the correct datastructure.
-        List<String> finalSolution = solutions.stream().map(characters ->
-                characters.stream().map(Object::toString).reduce((acc, e) -> acc + e).get()
-        ).sorted().collect(Collectors.toList());
-
-        System.out.println("All solutions: " + finalSolution);
-        return finalSolution.size();
+        //System.out.println("All solutions: " + finalSolution);
+        return solutions.size();
     }
 
     private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList) {
@@ -93,20 +84,11 @@ class Solution {
         return inputList.size() != oldList.size();
     }
 
-
-    private static List<Integer> getSolution(Integer[][] domain, List<Integer> variables) {
-        List<Integer> solution = new ArrayList<>(variables.size());
-        for (int i = 0; i < variables.size(); i++) {
-            solution.add(domain[i][variables.get(i)]);
-        }
-        return solution;
-    }
-
     public static void main(String[] args) {
         // exampleProblem(3);
 
         long startTime = System.currentTimeMillis();
-        int tmp = nQueens(2);
+        int tmp = getNQueenSolutions(12);
         System.out.println("Result: " + tmp);
         // permutationsNoRepetitions(3, 2);
         long endTime = System.currentTimeMillis();
