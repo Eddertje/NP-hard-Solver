@@ -21,21 +21,45 @@ class Solution {
 
         List<Constraint<Integer>> constraints = new ArrayList<>();
 
-        Constraint<Integer> largerThanSecondLargest = new Constraint<>(xs -> xs.get(xs.size()-2) < xs.get(xs.size()-1), new int[] {1});
-        constraints.add(largerThanSecondLargest);
-
         List<List<Integer>> solutions = new ArrayList<>();
         List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
+
         while (solution != null){
             solutions.add(getSolution(domain, solution));
 
-            List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
-            List<Integer> finalSolution = solution;
-            Constraint<Integer> largerThan = new Constraint<>(xs -> compareNumbers2(xs, finalSolution), new int[] {0});
-            new_constraints.add(largerThan);
+            //creating new helper domain
+            int[] searchFrom = new int[solution.size()];
+            for (int i = 0; i < solution.size(); i++) {
+                if(solution.get(i) == n-1 && i != 0) {
+                    searchFrom[i-1]++;
+                    for (int j = i; j < solution.size(); j++){
+                        searchFrom[j] = 0;
+                    }
+                    break;
+                }
+                searchFrom[i] = solution.get(i);
+            }
+            Integer[][] helperDomain = new Integer[k][];
+            for (int i = 0; i < k; i++) {
+                helperDomain[i] = Arrays.copyOfRange(domain[i],searchFrom[i],n);
+            }
 
-            solution = mySolver.backTracking_helper(domain, new_constraints);
+            List<Constraint<Integer>> new_constraints = new ArrayList<>();
+            List<Integer> finalSolution = solution;
+            Constraint<Integer> largerThan = new Constraint<>(xs -> compareNumbers2(xs, finalSolution, searchFrom), new int[] {0});
+            new_constraints.add(largerThan);
+            Constraint<Integer> largerThanSecondLargest = new Constraint<>(xs -> xs.get(xs.size()-2) + searchFrom[xs.size()-2] < xs.get(xs.size()-1) + searchFrom[xs.size()-1], new int[] {1});
+            new_constraints.add(largerThanSecondLargest);
+
+            solution = mySolver.backTracking_helper(helperDomain, new_constraints);
+            if(solution != null) {
+                for (int i = 0; i < solution.size(); i++) {
+                    solution.set(i, solution.get(i) + searchFrom[i]);
+                }
+            }
+
         }
+        solutions.remove(0);
 
         return solutions
                 .stream()
@@ -45,12 +69,12 @@ class Solution {
                 .collect(Collectors.toList());
     }
 
-    private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList) {
+    private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList, int[] searchFrom) {
         for (int i = 0; i < inputList.size(); i++) {
-            if (inputList.get(i) > oldList.get(i)) {
+            if (inputList.get(i) + searchFrom[i] > oldList.get(i)) {
                 return true;
             }
-            if (inputList.get(i) < oldList.get(i)) {
+            if (inputList.get(i) + searchFrom[i] < oldList.get(i)) {
                 return false;
             }
         }
@@ -69,14 +93,16 @@ class Solution {
         // exampleProblem(3);
 
         long startTime = System.currentTimeMillis();
-        // var solutions = getCombinationsWithoutRepetition(20, 8); // around 1 sec ish
-        var solutions = getCombinationsWithoutRepetition(10, 2);
+        var solutions = getCombinationsWithoutRepetition(100, 3); // around 1 sec ish
+        //var solutions = getCombinationsWithoutRepetition(5, 3);
         long endTime = System.currentTimeMillis();
-
+        /*
         System.out.println("Solutions: ");
         for (var sol : solutions) {
             System.out.println(Arrays.toString(sol));
         }
+
+         */
 
         System.out.println("That took " + (endTime - startTime) + " milliseconds");
     }
