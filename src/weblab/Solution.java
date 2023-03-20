@@ -2,14 +2,13 @@ package weblab;
 
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 class Solution {
     public static List<int[]> getCombinationsWithoutRepetition(int n, int k) {
         Solver<Integer> mySolver = new Solver<>();
-
+        long startTime = System.currentTimeMillis();
         Integer[][] domain = new Integer[k][];
 
         for (int i = 0; i < k; i++) {
@@ -25,14 +24,6 @@ class Solution {
         List<Constraint<Integer>> constraints = new ArrayList<>();
 
         Set<Set<Integer>> known_solutions = new HashSet<>();
-        Constraint<Integer> noReps = new Constraint<>(xs -> {
-            Set<Integer> set = new HashSet<>(xs);
-            if (!known_solutions.contains(set)) {
-                return true;
-            }
-            return false;
-        }, new int[] {0});
-        constraints.add(noReps);
 
         Constraint<Integer> biggerThanPrev = new Constraint<>(xs -> {
             int prev = xs.get(0) - 1;
@@ -47,17 +38,66 @@ class Solution {
         constraints.add(biggerThanPrev);
 
         List<List<Integer>> solutions = new ArrayList<>();
-
+        int[] searchFrom = new int[k];
+        Integer[][] oldDomain = domain;
         List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
         while (solution != null) {
             List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
-            List<Integer> finalSolution1 = solution;
-            Constraint<Integer> largerThanConstraint = new Constraint<>(xs -> compareNumbers2(xs, finalSolution1), new int[] {0});
-            new_constraints.add(largerThanConstraint);
 
-            solutions.add(solution);
-            known_solutions.add(new HashSet<>(solution));
-            solution = mySolver.backTracking_helper(domain, new_constraints);
+            List<Integer> finalSolution1 = solution;
+            List<Integer> actualSolution = new ArrayList<>();
+            for (int i = 0; i < solution.size(); i++) {
+                actualSolution.add(oldDomain[i][solution.get(i)]);
+            }
+            solutions.add(actualSolution);
+            known_solutions.add(new HashSet<>(actualSolution));
+
+            //creating new helper domain
+            for (int i = 0; i < solution.size(); i++) {
+                if(solution.get(i) == n-1 && i != 0) {
+                    searchFrom[i-1]++;
+                    for (int j = i; j < solution.size(); j++){
+                        searchFrom[j] = 0;
+                    }
+                    break;
+                }
+                searchFrom[i] = solution.get(i);
+            }
+            Integer[] test = Arrays.copyOfRange(domain[2],searchFrom[2],n);
+            for (int i : test) {
+                System.out.print(i + " ");
+            }
+            System.out.println("");
+            Integer[][] helperDomain = new Integer[k][];
+            for (int i = 0; i < k; i++) {
+                helperDomain[i] = Arrays.copyOfRange(domain[i],searchFrom[i],n);
+            }
+
+            // Check solution > prev
+            Integer[][] finalOldDomain = oldDomain;
+            Constraint<Integer> largerThanConstraint = new Constraint<>(xs -> compareNumbers2(xs, finalSolution1, helperDomain, finalOldDomain), new int[] {0});
+            new_constraints.add(largerThanConstraint);
+            //Check if solution exists
+            Constraint<Integer> noReps = new Constraint<>(xs -> {
+                List<Integer> actualList = new ArrayList<>();
+                for (int i = 0; i < xs.size(); i++) {
+                    actualList.add(helperDomain[i][xs.get(i)]);
+                }
+                Set<Integer> set = new HashSet<>(actualList);
+                if (!known_solutions.contains(set)) {
+                    return true;
+                }
+                return false;
+            }, new int[] {0});
+            new_constraints.add(noReps);
+            solution = mySolver.backTracking_helper(helperDomain, new_constraints);
+            oldDomain = helperDomain;
+            /*
+            1563200
+            60075
+            26
+            19600
+             */
         }
         /*
         // Collect the result and convert it to the correct datastructure.
@@ -70,11 +110,11 @@ class Solution {
         for (List<Integer> sol : solutions) {
             int[] convert = new int[sol.size()];
             for (int i = 0; i < sol.size(); i++) {
-                convert[i] = sol.get(i)+1;
+                convert[i] = sol.get(i);
             }
             finalSolution.add(convert);
         }
-        /*
+
         System.out.println("All solutions: ");
         for (int[] i : finalSolution) {
             System.out.print("(");
@@ -84,16 +124,22 @@ class Solution {
             System.out.print("), ");
         }
 
-         */
+
+        System.out.println("");
+        System.out.println(Solver.num);
+        System.out.println(Solver.num2);
+        System.out.println(Solver.num/Solver.num2);
+        System.out.println(finalSolution.size());
+
         return finalSolution;
     }
 
-    private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList) {
+    private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList, Integer[][] inputSpace, Integer[][] oldSpace) {
         for (int i = 0; i < inputList.size(); i++) {
-            if (inputList.get(i) > oldList.get(i)) {
+            if (inputSpace[i][inputList.get(i)] > oldSpace[i][oldList.get(i)]) {
                 return true;
             }
-            if (inputList.get(i) < oldList.get(i)) {
+            if (inputSpace[i][inputList.get(i)] < oldSpace[i][oldList.get(i)]) {
                 return false;
             }
         }
@@ -105,7 +151,21 @@ class Solution {
 
         long startTime = System.currentTimeMillis();
         // getBinaryStrings(20);
-        getCombinationsWithoutRepetition(52, 3);
+        getCombinationsWithoutRepetition(5, 3);
+        /*
+        1563200
+        60075
+        26
+        19600
+         */
+        /*
+        97850
+        7225
+        13
+        2300
+        313ms
+         */
+
         long endTime = System.currentTimeMillis();
         System.out.println("That took " + (endTime - startTime) + " milliseconds");
 
@@ -120,6 +180,8 @@ class Solution {
 }
 
 class Solver<A> {
+    public static int num = 0;
+    public static int num2 = 0;
     public List<List<Integer>> multiple_backtrack(A[][] domain, List<Constraint<Integer>> constraints) {
         List<List<Integer>> all_solutions = new ArrayList<>();
         Set<List<Integer>> known_solutions = new HashSet<>();
@@ -182,8 +244,9 @@ class Solver<A> {
         for (int i = 0; i < domain[depth].length; i++) {
             List<Integer> new_solution = new ArrayList<>(solution);
             new_solution.add(i);
-
+            num++;
             if (isConsistent(domain, new_solution, constraints)) {
+                num2++;
                 // System.out.println("Is consistent: " + new_solution);
                 List<Integer> potential_solution = backTracking(depth+1, new_solution, domain, constraints);
                 if (potential_solution != null) {
