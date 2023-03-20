@@ -3,9 +3,32 @@ package weblab;
 import java.util.*;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 class Solution {
     public static int getNQueenSolutions(int n) {
+        /**
+         * Our symmetry breaking is our variable "symmetry".
+         *
+         *          Constraint<Integer> symmetry = new Constraint<>(xs -> xs.get(0) < (n+1) / 2, new int[] {1});
+         *
+         * It only considers solutions where the position of the queen on the first row is on the left side of the board.
+         * All solutions with the queen on the first row on the right side of the board, are ignored.
+         * This allows us to break the symmetry, effectively only searching through half the solutions.
+         *
+         * When we return the final answer, we add 2 tot the result for all solutions that have a symmetry,
+         * representing the symmetrical solution that was not searched.
+         * For all solutions that do not have a symmetry, we add 1 to the result.
+         *
+         * We handle odd boards in the following way:
+         * The constraint allows solutions where the queen is in the first row in the middle solution.
+         * However, these solutions do not have a symmetrical counterpart. Therefore, when we count
+         * the total number of solutions, for these solutions we return 1 instead of the normal 2.
+         * This is handled as follows:
+         *
+         *          if (xs.get(0) == (n) / 2) return 1; // No symmetry has been broken, return only this solution.
+         *              return 2; // This solution has a symmetry on the other side of the board, return it as well.
+         */
         Solver<Integer> mySolver = new Solver<>();
 
         Integer[][] domain = new Integer[n][2];
@@ -25,7 +48,6 @@ class Solution {
         constraints.add(newConstraint);
 
         Constraint<Integer> directions = new Constraint<>(x -> {
-            // System.out.println("inside constraint!");
             boolean[] vertical = new boolean[n];
             HashSet<Integer> diagonal = new HashSet<>();
             for (int i = 0; i < x.size(); i++) {
@@ -41,23 +63,17 @@ class Solution {
                 diagonal.add(left);
                 diagonal.add(right);
             }
-            if (x.size() == 4) {
-                /*
-                for (Integer j : x) {
-                    System.out.println(j);
-                }
-
-                 *///System.out.println("hi");
-            }
             return true;
         }, new int[] {1});
         constraints.add(directions);
+
+        Constraint<Integer> symmetry = new Constraint<>(xs -> xs.get(0) < (n+1) / 2, new int[] {1});
+        constraints.add(symmetry);
 
         List<List<Integer>> solutions = new ArrayList<>();
         List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
 
         while (solution != null) {
-            //System.out.println("Adding a new solution: " + solution);
             solutions.add(solution);
             known_solutions.add(solution);
             List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
@@ -68,8 +84,10 @@ class Solution {
             solution = mySolver.backTracking_helper(domain, new_constraints);
         }
 
-        //System.out.println("All solutions: " + finalSolution);
-        return solutions.size();
+        return solutions.stream().mapToInt(xs -> {
+            if (xs.get(0) == (n) / 2) return 1; // No symmetry has been broken, return only this solution.
+            return 2; // This solution has a symmetry on the other side of the board, return it as well.
+        }).sum();
     }
 
     private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList) {
@@ -88,7 +106,7 @@ class Solution {
         // exampleProblem(3);
 
         long startTime = System.currentTimeMillis();
-        int tmp = getNQueenSolutions(12);
+        int tmp = getNQueenSolutions(5);
         System.out.println("Result: " + tmp);
         // permutationsNoRepetitions(3, 2);
         long endTime = System.currentTimeMillis();
