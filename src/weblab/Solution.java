@@ -5,90 +5,102 @@ import java.util.List;
 import java.util.function.Function;
 
 class Solution {
-    public static int getNQueenSolutions(int n) {
+
+    public static int[][] solve(int[][] grid) {
         Solver<Integer> mySolver = new Solver<>();
-
-        Integer[][] domain = new Integer[n][2];
-
-        for (int i = 0; i < n; i++) {
-            Integer[] choice = new Integer[n];
-            for (int j = 0; j < choice.length; j++) {
-                choice[j] = j;
+        Integer[][] domain = new Integer[81][];
+        Integer[] sudoku = {1,2,3,4,5,6,7,8,9};
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                if(grid[i][j] != -1) {
+                    domain[i+9*j] = new Integer[]{grid[i][j]};
+                } else domain[i+9*j] = sudoku;
             }
-            domain[i] = choice;
         }
 
         List<Constraint<Integer>> constraints = new ArrayList<>();
 
-        Set<List<Integer>> known_solutions = new HashSet<>();
-        Constraint<Integer> newConstraint = new Constraint<>(xs -> !known_solutions.contains(xs), new int[] {n-1});
-        constraints.add(newConstraint);
-
-        Constraint<Integer> directions = new Constraint<>(x -> {
-            // System.out.println("inside constraint!");
-            boolean[] vertical = new boolean[n];
-            HashSet<Integer> diagonal = new HashSet<>();
-            for (int i = 0; i < x.size(); i++) {
-                if (vertical[x.get(i)]) {
-                    return false;
-                }
-                vertical[x.get(i)] = true;
-                int left = x.get(i) - i - n;
-                int right = x.get(i) + i + n;
-                if (diagonal.contains(left) || diagonal.contains(right)) {
-                    return false;
-                }
-                diagonal.add(left);
-                diagonal.add(right);
+        Constraint<Integer> horizontal = new Constraint<>(x -> {
+            Set<Integer>[] lines = new HashSet[9];
+            for (int i = 0; i < 9; i++) {
+                lines[i] = new HashSet<>();
             }
-            if (x.size() == 4) {
-                /*
-                for (Integer j : x) {
-                    System.out.println(j);
+            for (int i = 0; i < x.size(); i++) {
+                if(lines[i/9].contains(x.get(i))){
+                    System.out.println(lines[i/9]);
+                    System.out.println(i);
+                    System.out.println(x.get(i));
+                    System.out.println("hi");
+                    return false;
                 }
-
-                 *///System.out.println("hi");
+                lines[i/9].add(x.get(i));
             }
             return true;
         }, new int[] {1});
-        constraints.add(directions);
+        constraints.add(horizontal);
 
-        List<List<Integer>> solutions = new ArrayList<>();
+        Constraint<Integer> vertical = new Constraint<>(x -> {
+            Set<Integer>[] lines = new HashSet[9];
+            for (int i = 0; i < 9; i++) {
+                lines[i] = new HashSet<>();
+            }
+            for (int i = 0; i < x.size(); i++) {
+                if(lines[i%9].contains(x.get(i))){
+                    System.out.println("");
+                    System.out.println(lines[i%9]);
+                    System.out.println("hi2");
+                    return false;
+                }
+                lines[i%9].add(x.get(i));
+            }
+            return true;
+        }, new int[] {1});
+        constraints.add(vertical);
+
+        Constraint<Integer> boxes = new Constraint<>(x -> {
+            Set<Integer>[][] box = new HashSet[3][3];
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    box[i][j] = new HashSet<>();
+                }
+            }
+            for (int i = 0; i < x.size(); i++) {
+                int h = i/9;
+                int v = i%9;
+                if(box[h/3][v/3].contains(x.get(i))){
+                    System.out.println("hi3");
+                    return false;
+                }
+                box[h/3][v/3].add(x.get(i));
+            }
+            return true;
+        }, new int[] {1});
+        constraints.add(boxes);
+
         List<Integer> solution = mySolver.backTracking_helper(domain, constraints);
 
-        while (solution != null) {
-            //System.out.println("Adding a new solution: " + solution);
-            solutions.add(solution);
-            known_solutions.add(solution);
-            List<Constraint<Integer>> new_constraints = new ArrayList<>(constraints);
-            List<Integer> finalSolution1 = solution;
-            Constraint<Integer> largerThanConstraint = new Constraint<>(xs -> compareNumbers2(xs, finalSolution1), new int[] {0});
-            new_constraints.add(largerThanConstraint);
-
-            solution = mySolver.backTracking_helper(domain, new_constraints);
+        for (int i = 0; i < 81; i++) {
+            int h = i/9;
+            int v = i%9;
+            grid[h][v] = solution.get(i);
         }
 
-        //System.out.println("All solutions: " + finalSolution);
-        return solutions.size();
+        return grid;
     }
-
-    private static boolean compareNumbers2(List<Integer> inputList, List<Integer> oldList) {
-        for (int i = 0; i < inputList.size(); i++) {
-            if (inputList.get(i) > oldList.get(i)) {
-                return true;
-            }
-            if (inputList.get(i) < oldList.get(i)) {
-                return false;
-            }
-        }
-        return inputList.size() != oldList.size();
-    }
-
     public static void main(String[] args) {
         // exampleProblem(3);
+        int[][] sudoku = new int[][]{{9,5,6,8,3,7,4,2,1},
+                {8,7,4,2,1,6,9,5,3},
+                {3,2,1,4,9,5,6,7,8},
+                {6,9,5,3,7,4,1,8,2},
+                {7,3,2,9,8,1,5,6,4},
+                {4,1,8,6,5,2,7,3,9},
+                {5,8,7,1,4,3,2,9,6},
+                {1,6,3,5,2,9,8,4,7},
+                {2,4,9,7,6,8,3,1,5}};
 
         long startTime = System.currentTimeMillis();
-        int tmp = getNQueenSolutions(12);
+        int[][] tmp = solve(sudoku);
         System.out.println("Result: " + tmp);
         // permutationsNoRepetitions(3, 2);
         long endTime = System.currentTimeMillis();
